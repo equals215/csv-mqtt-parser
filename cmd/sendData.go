@@ -21,16 +21,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var broker string
+var port string
+var user string
+var topic string
+var password string
+var id int
+var cleansess bool
+var qos int
+
 // sendDataCmd represents the sendData command
 var sendDataCmd = &cobra.Command{
-	Use:   "sendData",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "send-data",
+	Short: "Send parsed CSV file to MQTT broker",
+	Long:  `Parse the CSV file to a MQTT-understandable format and then send it to the configured broker`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("sendData called")
 	},

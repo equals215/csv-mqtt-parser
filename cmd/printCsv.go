@@ -16,23 +16,62 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/csv"
+	"errors"
 	"fmt"
+	"io"
+	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 )
 
 // printCsvCmd represents the printCsv command
 var printCsvCmd = &cobra.Command{
-	Use:   "printCsv",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "print-csv [CSV_FILES...]",
+	Short: "Print CSV File line-by-line",
+	Long: `Print CSV File line-by-line in a key:value format
+Used for debug purposes and double-check the data`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("Requires at least one file argument")
+		}
+		for i := 0; i < len(args); i++ {
+			if _, err := os.Stat(args[i]); err == nil {
+				continue
+			} else if os.IsNotExist(err) {
+				return fmt.Errorf("%s doesn't exist or can't be read", args[i])
+			} else {
+				return fmt.Errorf("unexpected error while opening %s", args[i])
+			}
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("printCsv called")
+		for i := 0; i < len(args); i++ {
+			// Open the file
+			csvfile, err := os.Open(args[i])
+			if err != nil {
+				log.Fatalln("Couldn't open the csv file", err)
+			}
+
+			// Parse the file
+			r := csv.NewReader(csvfile)
+			//r := csv.NewReader(bufio.NewReader(csvfile))
+
+			// Iterate through the records
+			for {
+				// Read each record from csv
+				record, err := r.Read()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(record)
+			}
+		}
 	},
 }
 

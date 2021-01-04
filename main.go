@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "csv-mqtt-parser/cmd"
+import "github.com/equals215/csv-mqtt-parser/cmd"
 
 func main() {
 	cmd.Execute()

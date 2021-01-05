@@ -17,18 +17,13 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
-
-var broker string
-var port string
-var user string
-var topic string
-var password string
-var id int
-var cleansess bool
-var qos int
 
 // sendDataCmd represents the sendData command
 var sendDataCmd = &cobra.Command{
@@ -36,20 +31,56 @@ var sendDataCmd = &cobra.Command{
 	Short: "Send parsed CSV file to MQTT broker",
 	Long:  `Parse the CSV file to a MQTT-understandable format and then send it to the configured broker`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("sendData called")
+		opts := MQTT.NewClientOptions()
+		opts.AddBroker(broker)
+		opts.SetClientID(id)
+		opts.SetUsername(user)
+		opts.SetPassword(password)
+		opts.SetCleanSession(cleansess)
+		opts.SetStore(MQTT.NewFileStore(":memory:"))
+		client := MQTT.NewClient(opts)
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			panic(token.Error())
+		}
+		num := 1
+		fmt.Println("Sample Publisher Started")
+		for i := 0; i < num; i++ {
+			fmt.Println("---- doing publish ----")
+			token := client.Publish(topic, byte(qos), false, "test "+time.Now().String())
+			token.Wait()
+		}
+		client.Disconnect(250)
+		fmt.Println("Sample Publisher Disconnected")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(sendDataCmd)
 
-	// Here you will define your flags and configuration settings.
+	sendDataCmd.Flags().StringVarP(&broker, "broker", "b", "", "Broker URI (required)")
+	sendDataCmd.MarkFlagRequired("broker")
+	sendDataCmd.Flags().StringVarP(&user, "user", "u", "", "User (optional)")
+	sendDataCmd.Flags().StringVarP(&password, "password", "p", "", "Password (optional)")
+	sendDataCmd.Flags().StringVarP(&topic, "topic", "t", "", "Topic (required)")
+	sendDataCmd.MarkFlagRequired("topic")
+	sendDataCmd.Flags().StringVarP(&id, "id", "", "", "ClientID (optional)")
+	sendDataCmd.Flags().BoolVarP(&cleansess, "cleansess", "", false, "Set Clean Session, default to false (optional)")
+	sendDataCmd.Flags().IntVarP(&qos, "qos", "", 0, "Set QOS to either 0 1 or 2, default to 0 (optional)")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// sendDataCmd.PersistentFlags().String("foo", "", "A help for foo")
+	cobra.OnInitialize(readConfig)
+}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// sendDataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func readConfig() {
+	if err := viper.ReadInConfig(); err == nil {
+		if verbose {
+			fmt.Println("Reading config file")
+		}
+		viper.BindPFlags(rootCmd.Flags())
+		sendDataCmd.Flags().VisitAll(func(f *pflag.Flag) {
+			fmt.Println(f.Name)
+			if viper.IsSet(f.Name) && viper.GetString(f.Name) != "" {
+				sendDataCmd.Flags().Set(f.Name, viper.GetString(f.Name))
+			}
+		})
+	}
 }

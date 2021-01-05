@@ -20,3 +20,4 @@ config
 config.yml
 csv-mqtt-parser
 settings.json
+data_formatted.csv

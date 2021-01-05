@@ -17,5 +17,6 @@
 
 .DS_Store
 config
+config.yml
 csv-mqtt-parser
 settings.json
